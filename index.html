@@ -1,2009 +1,687 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Circle Hub</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=SF+Pro+Display:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet">
 <style>
+/* ── tokens ── */
 :root {
-  --r: 320px; /* circle radius (diameter = 640px) */
-  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --bg0: #060912;
-  --bg1: #0d1117;
-  --glass: rgba(255,255,255,0.06);
-  --glass-border: rgba(255,255,255,0.10);
-  --glass-hover: rgba(255,255,255,0.10);
-  --text: #F1F5F9;
-  --text-2: #94A3B8;
-  --text-3: rgba(148,163,184,0.5);
-  --blue: #3B82F6;
-  --blue-glow: rgba(59,130,246,0.3);
-  --teal: #14B8A6;
-  --amber: #F59E0B;
-  --red: #EF4444;
-  --green: #22C55E;
-  --purple: #A855F7;
-  --font: 'Inter', -apple-system, sans-serif;
+  --D: 560px;
+  --bg: #060609;
+  --t0: #fff;
+  --t1: rgba(255,255,255,.46);
+  --t2: rgba(255,255,255,.2);
+  --e: cubic-bezier(.32,.72,0,1);
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html, body {
-  width: 100%; height: 100%;
-  overflow: hidden;
-  background: var(--bg0);
-  font-family: var(--font);
-  color: var(--text);
-  -webkit-font-smoothing: antialiased;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  width:100%;height:100%;background:#000;
+  font-family:-apple-system,'Inter',sans-serif;
+  -webkit-font-smoothing:antialiased;
+  user-select:none;touch-action:none;overflow:hidden;
 }
 
-/* ═══════════════════════════════════════════
-   OUTER SHELL (desktop centering)
-═══════════════════════════════════════════ */
-#outer {
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.08) 0%, transparent 60%),
-              radial-gradient(ellipse at 80% 100%, rgba(168,85,247,0.06) 0%, transparent 50%),
-              var(--bg0);
+/* ── outer shell ── */
+#shell{
+  width:100vw;height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  background:#000;
 }
 
-/* ═══════════════════════════════════════════
-   DEVICE
-═══════════════════════════════════════════ */
-.device {
-  position: relative;
-  width: calc(var(--r) * 2 + 24px);
-  height: calc(var(--r) * 2 + 24px);
-  flex-shrink: 0;
-}
-
-.bezel {
-  width: 100%; height: 100%;
-  border-radius: 50%;
-  padding: 12px;
-  background: linear-gradient(145deg, #1e2530 0%, #0d1117 40%, #161b25 100%);
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,0.06),
-    0 40px 120px rgba(0,0,0,0.9),
-    0 8px 32px rgba(0,0,0,0.6),
-    inset 0 1px 0 rgba(255,255,255,0.12),
-    inset 0 -1px 0 rgba(0,0,0,0.4);
-  position: relative;
-}
-
-.bezel::before {
-  content: '';
-  position: absolute;
-  inset: 3px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.04);
-  pointer-events: none;
-}
-
-.screen {
-  width: 100%; height: 100%;
-  border-radius: 50%;
-  overflow: hidden;
-  background: var(--bg1);
-  position: relative;
-}
-
-/* Ambient glow inside screen based on active content */
-.screen::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  opacity: 0;
-  transition: opacity 1.5s ease;
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* Screen glare */
-.glare {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at 35% 18%, rgba(255,255,255,0.08) 0%, transparent 55%);
-  pointer-events: none;
-  z-index: 999;
-}
-
-/* ═══════════════════════════════════════════
-   VIEW SYSTEM
-═══════════════════════════════════════════ */
-.views {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  overflow: hidden;
-}
-
-.view {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transform: scale(0.94);
-  transition: opacity 0.35s var(--ease-out), transform 0.35s var(--ease-out);
-  pointer-events: none;
-  overflow: hidden;
-}
-.view.active {
-  opacity: 1;
-  transform: scale(1);
-  pointer-events: all;
-  z-index: 10;
-}
-.view.exit-left {
-  opacity: 0;
-  transform: translateX(-8%) scale(0.96);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-.view.exit-right {
-  opacity: 0;
-  transform: translateX(8%) scale(0.96);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-/* ═══════════════════════════════════════════
-   VIEW 0: STANDBY
-═══════════════════════════════════════════ */
-#v-standby {
-  background: var(--bg0);
-  cursor: pointer;
-  gap: 0;
-}
-
-.standby-ambient {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
+/* ── premium bezel ── */
+.bezel{
+  width:calc(var(--D)+20px);height:calc(var(--D)+20px);
+  border-radius:50%;padding:10px;flex-shrink:0;
   background:
-    radial-gradient(ellipse at 30% 25%, rgba(59,130,246,0.18) 0%, transparent 55%),
-    radial-gradient(ellipse at 70% 75%, rgba(168,85,247,0.12) 0%, transparent 55%);
-  animation: ambient-drift 8s ease-in-out infinite alternate;
-}
-@keyframes ambient-drift {
-  0%   { transform: scale(1) rotate(0deg); opacity: 0.8; }
-  100% { transform: scale(1.05) rotate(5deg); opacity: 1; }
-}
-
-.standby-particles {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  overflow: hidden;
-}
-.particle {
-  position: absolute;
-  width: 2px; height: 2px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.4);
-  animation: float-up linear infinite;
-}
-@keyframes float-up {
-  0%   { transform: translateY(0) translateX(0); opacity: 0; }
-  10%  { opacity: 1; }
-  90%  { opacity: 0.5; }
-  100% { transform: translateY(-300px) translateX(30px); opacity: 0; }
-}
-
-.standby-time {
-  font-size: 72px;
-  font-weight: 700;
-  letter-spacing: -3px;
-  color: var(--text);
-  line-height: 1;
-  z-index: 2;
-  text-shadow: 0 2px 40px rgba(59,130,246,0.4);
-}
-
-.standby-date {
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--text-2);
-  letter-spacing: 0.3px;
-  margin-top: 8px;
-  z-index: 2;
-}
-
-.standby-weather {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 16px;
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  border-radius: 30px;
-  padding: 7px 16px;
-  backdrop-filter: blur(20px);
-  z-index: 2;
-  font-size: 14px;
-  color: var(--text-2);
-}
-
-.standby-tap-hint {
-  position: absolute;
-  bottom: 22%;
-  font-size: 11px;
-  color: var(--text-3);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  z-index: 2;
-  animation: pulse-hint 2.5s ease-in-out infinite;
-}
-@keyframes pulse-hint {
-  0%,100% { opacity: 0.4; }
-  50% { opacity: 0.9; }
-}
-
-/* ═══════════════════════════════════════════
-   VIEW 1: HOME
-═══════════════════════════════════════════ */
-#v-home {
-  background: var(--bg0);
-  padding-bottom: 72px;
-  justify-content: flex-start;
-  padding-top: 52px;
-  gap: 0;
-}
-
-.home-bg {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at 50% -20%, rgba(59,130,246,0.15) 0%, transparent 50%);
-}
-
-.home-greeting {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  z-index: 2;
-  margin-bottom: 4px;
-}
-
-.home-temp-hero {
-  display: flex;
-  align-items: baseline;
-  gap: 2px;
-  z-index: 2;
-  margin-bottom: 6px;
-}
-.home-temp-num { font-size: 52px; font-weight: 700; letter-spacing: -2px; color: var(--text); }
-.home-temp-unit { font-size: 22px; font-weight: 300; color: var(--text-2); }
-
-.home-weather-desc { font-size: 13px; color: var(--text-2); z-index: 2; margin-bottom: 20px; }
-
-.home-rooms {
-  display: flex;
-  gap: 8px;
-  z-index: 2;
-  margin-bottom: 16px;
-}
-.room-pill {
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  color: var(--text-2);
-  cursor: pointer;
-  transition: all 0.2s;
-  backdrop-filter: blur(20px);
-}
-.room-pill.active {
-  background: var(--blue);
-  border-color: transparent;
-  color: #fff;
-}
-
-.home-devices {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 9px;
-  width: 72%;
-  z-index: 2;
-}
-
-.device-card {
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  border-radius: 18px;
-  padding: 14px 12px;
-  cursor: pointer;
-  transition: all 0.22s var(--ease-out);
-  backdrop-filter: blur(20px);
-  position: relative;
-  overflow: hidden;
-}
-.device-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
-}
-.device-card:active { transform: scale(0.95); }
-.device-card.on {
-  background: rgba(59,130,246,0.12);
-  border-color: rgba(59,130,246,0.25);
-}
-.device-card.on::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 18px;
-  box-shadow: inset 0 0 20px rgba(59,130,246,0.08);
-}
-
-.dc-icon {
-  font-size: 22px;
-  margin-bottom: 8px;
-  display: block;
-  line-height: 1;
-}
-.dc-name {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 2px;
-  letter-spacing: 0.2px;
-}
-.dc-status {
-  font-size: 10px;
-  color: var(--text-3);
-}
-.device-card.on .dc-status { color: var(--blue); }
-
-.dc-toggle {
-  position: absolute;
-  top: 10px; right: 10px;
-  width: 28px; height: 16px;
-  border-radius: 8px;
-  background: rgba(255,255,255,0.1);
-  transition: background 0.2s;
-}
-.dc-toggle::after {
-  content: '';
-  position: absolute;
-  width: 12px; height: 12px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.5);
-  top: 2px; left: 2px;
-  transition: transform 0.2s var(--ease-spring), background 0.2s;
-}
-.device-card.on .dc-toggle { background: var(--blue); }
-.device-card.on .dc-toggle::after { transform: translateX(12px); background: #fff; }
-
-/* ═══════════════════════════════════════════
-   VIEW 2: MUSIC
-═══════════════════════════════════════════ */
-#v-music {
-  background: var(--bg0);
-  padding-bottom: 72px;
-  gap: 0;
-}
-
-.music-bg {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  transition: all 1.5s ease;
-}
-
-.music-visualizer {
-  position: absolute;
-  bottom: 18%;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  height: 28px;
-  z-index: 2;
-}
-.viz-bar {
-  width: 3px;
-  border-radius: 2px;
-  background: rgba(255,255,255,0.3);
-  animation: viz-dance 0.8s ease-in-out infinite alternate;
-  min-height: 3px;
-}
-@keyframes viz-dance {
-  0%   { height: 3px; }
-  100% { height: var(--h, 20px); }
-}
-
-.music-art-wrap {
-  position: relative;
-  z-index: 2;
-  margin-bottom: 14px;
-}
-.music-art {
-  width: 110px; height: 110px;
-  border-radius: 50%;
-  background: var(--glass);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 44px;
-  position: relative;
+    radial-gradient(circle at 38% 26%,#252525 0%,#0e0e0e 40%,#1c1c1c 100%);
   box-shadow:
-    0 0 0 1px rgba(255,255,255,0.1),
-    0 8px 40px rgba(0,0,0,0.6);
-  transition: box-shadow 1s ease;
-}
-.music-art::before {
-  content: '';
-  position: absolute;
-  inset: -8px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.06);
-}
-.music-art::after {
-  content: '';
-  position: absolute;
-  width: 22%;
-  height: 22%;
-  border-radius: 50%;
-  background: var(--bg0);
-  border: 1px solid rgba(255,255,255,0.1);
-}
-.music-art.spinning {
-  animation: spin-record 5s linear infinite;
-}
-@keyframes spin-record { to { transform: rotate(360deg); } }
-
-.music-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -0.3px;
-  z-index: 2;
-  text-align: center;
-  max-width: 70%;
-}
-.music-artist {
-  font-size: 12px;
-  color: var(--text-2);
-  z-index: 2;
-  margin-top: 3px;
-  margin-bottom: 16px;
+    0 0 0 1px rgba(255,255,255,.055),
+    0 70px 220px rgba(0,0,0,1),
+    inset 0 1px 0 rgba(255,255,255,.10),
+    inset 0 -1px 2px rgba(0,0,0,.9);
 }
 
-.music-progress {
-  width: 68%;
-  z-index: 2;
-  margin-bottom: 4px;
+/* ── round screen ── */
+.screen{
+  width:var(--D);height:var(--D);
+  border-radius:50%;overflow:hidden;
+  position:relative;background:var(--bg);
 }
-.progress-track {
-  width: 100%;
-  height: 3px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 3px;
-  overflow: hidden;
-  cursor: pointer;
-}
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--blue), var(--purple));
-  border-radius: 3px;
-  width: 35%;
-  transition: width 0.5s linear;
-}
-.progress-times {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  color: var(--text-3);
-  margin-top: 5px;
+/* glare overlay */
+.screen::after{
+  content:'';position:absolute;inset:0;border-radius:50%;
+  z-index:9999;pointer-events:none;
+  background:radial-gradient(ellipse at 33% 17%,rgba(255,255,255,.045) 0%,transparent 46%);
 }
 
-.music-controls {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  z-index: 2;
-  margin-top: 12px;
+/* ── views ── */
+.view{
+  position:absolute;inset:0;border-radius:50%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  opacity:0;transform:scale(.92);
+  transition:opacity .42s var(--e),transform .42s var(--e);
+  pointer-events:none;
 }
-.mc-btn {
-  background: none;
-  border: none;
-  color: var(--text-2);
-  cursor: pointer;
-  font-size: 18px;
-  padding: 6px;
-  transition: all 0.2s;
-  border-radius: 50%;
-}
-.mc-btn:active { transform: scale(0.88); }
-.mc-btn:hover { color: var(--text); }
-.mc-play {
-  width: 52px; height: 52px;
-  border-radius: 50%;
-  background: var(--text);
-  color: var(--bg0);
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  border: none;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-  transition: all 0.2s var(--ease-spring);
-}
-.mc-play:active { transform: scale(0.9); }
+.view.active{opacity:1;transform:scale(1);pointer-events:all;z-index:10}
+.view.ol{opacity:0;transform:translateX(-5%) scale(.96);transition:opacity .3s,transform .3s}
+.view.or{opacity:0;transform:translateX( 5%) scale(.96);transition:opacity .3s,transform .3s}
 
-/* ═══════════════════════════════════════════
-   VIEW 3: AI VOICE
-═══════════════════════════════════════════ */
-#v-ai {
-  background: var(--bg0);
-  padding-bottom: 72px;
-  gap: 12px;
+/* ── arc nav dots (bottom arc, 5 dots) ── */
+#nav{position:absolute;inset:0;border-radius:50%;pointer-events:none;z-index:900;transition:opacity .3s}
+.nd{
+  position:absolute;top:50%;left:50%;
+  width:4px;height:4px;border-radius:50%;
+  background:rgba(255,255,255,.2);
+  transform:translate(-50%,-50%);
+  transition:all .3s var(--e);
+  pointer-events:all;cursor:pointer;
 }
-.ai-bg {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at 50% 50%, rgba(168,85,247,0.12) 0%, transparent 65%);
-}
-.ai-orb {
-  width: 88px; height: 88px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(168,85,247,0.8) 0%, rgba(59,130,246,0.6) 60%, transparent 100%);
-  box-shadow: 0 0 40px rgba(168,85,247,0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 32px;
-  z-index: 2;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.3s var(--ease-spring);
-}
-.ai-orb::before, .ai-orb::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
-  border: 1px solid rgba(168,85,247,0.3);
-  animation: orb-ring 2.5s ease-out infinite;
-}
-.ai-orb::before { inset: -12px; animation-delay: 0s; }
-.ai-orb::after  { inset: -24px; animation-delay: 0.6s; }
-@keyframes orb-ring {
-  0%   { opacity: 0.6; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.15); }
-}
-.ai-orb.listening {
-  animation: orb-pulse 1s ease-in-out infinite;
-}
-@keyframes orb-pulse {
-  0%,100% { transform: scale(1); box-shadow: 0 0 40px rgba(168,85,247,0.4); }
-  50%      { transform: scale(1.08); box-shadow: 0 0 60px rgba(168,85,247,0.7); }
+.nd::before{content:'';position:absolute;inset:-10px;border-radius:50%}
+.nd.on{
+  background:rgba(255,255,255,.85);
+  width:6px;height:6px;
+  box-shadow:0 0 6px rgba(255,255,255,.4);
 }
 
-.ai-label { font-size: 12px; color: var(--text-2); z-index: 2; }
+/* ════════════════════════════
+   V0 · CLOCK  (standby)
+════════════════════════════ */
+#v0{
+  background:radial-gradient(ellipse at 50% 50%,#0b0b16 0%,#040406 100%);
+  cursor:pointer;
+}
+.v0-amb{
+  position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background:
+    radial-gradient(ellipse at 36% 30%,rgba(74,158,255,.08) 0%,transparent 52%),
+    radial-gradient(ellipse at 66% 70%,rgba(191,90,242,.05) 0%,transparent 52%);
+  animation:amb 13s ease-in-out infinite alternate;
+}
+@keyframes amb{from{transform:scale(1)}to{transform:scale(1.09) rotate(11deg)}}
 
-.ai-chat {
-  width: 78%;
-  max-height: 120px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  z-index: 2;
-  scrollbar-width: none;
+.v0-time{
+  font-size:94px;font-weight:200;letter-spacing:-7px;
+  color:var(--t0);z-index:2;line-height:1;
+  text-shadow:0 0 80px rgba(74,158,255,.15);
 }
-.bubble {
-  padding: 8px 12px;
-  border-radius: 14px;
-  font-size: 11px;
-  line-height: 1.5;
-  animation: bubble-in 0.3s var(--ease-out);
+.v0-date{font-size:11px;color:var(--t1);margin-top:6px;z-index:2;letter-spacing:.3px}
+.v0-hint{
+  position:absolute;bottom:19%;font-size:9px;letter-spacing:3px;
+  text-transform:uppercase;color:var(--t2);z-index:2;
+  animation:blink 3s ease-in-out infinite;
 }
-@keyframes bubble-in { from { opacity: 0; transform: translateY(6px) scale(0.95); } }
-.bubble.ai {
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  color: var(--text);
-  align-self: flex-start;
-  border-bottom-left-radius: 4px;
-}
-.bubble.user {
-  background: var(--blue);
-  color: #fff;
-  align-self: flex-end;
-  border-bottom-right-radius: 4px;
-}
+@keyframes blink{0%,100%{opacity:.15}50%{opacity:.6}}
 
-/* ═══════════════════════════════════════════
-   VIEW 4: SECURITY
-═══════════════════════════════════════════ */
-#v-security {
-  background: var(--bg0);
-  padding-bottom: 72px;
-  gap: 10px;
-}
+/* ════════════════════════════
+   V1 · TEMPERATURE  (Nest-style)
+   Arc: 270°, r=254, starts bottom-left (CSS 225°)
+   SVG: rotate(135 280 280) on 560×560 viewbox
+════════════════════════════ */
+#v1{background:var(--bg)}
 
-.sec-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 18px;
-  border-radius: 30px;
-  font-size: 13px;
-  font-weight: 600;
-  z-index: 2;
-  background: rgba(34,197,94,0.15);
-  border: 1px solid rgba(34,197,94,0.25);
-  color: var(--green);
-}
-.sec-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 6px var(--green);
-  animation: sec-blink 2s ease infinite;
-}
-@keyframes sec-blink {
-  0%,100% { opacity: 1; }
-  50%      { opacity: 0.4; }
-}
-.sec-status.armed {
-  background: rgba(239,68,68,0.15);
-  border-color: rgba(239,68,68,0.25);
-  color: var(--red);
-}
-.sec-status.armed .sec-dot { background: var(--red); box-shadow: 0 0 6px var(--red); }
-
-.cam-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  width: 74%;
-  z-index: 2;
-}
-.cam {
-  background: #000;
-  border-radius: 10px;
-  aspect-ratio: 16/9;
-  overflow: hidden;
-  position: relative;
-  border: 1px solid rgba(255,255,255,0.06);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.cam:active { transform: scale(0.96); }
-.cam-body { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-.cam-label {
-  position: absolute;
-  bottom: 4px; left: 6px;
-  font-size: 8px;
-  color: rgba(255,255,255,0.6);
-  font-weight: 500;
-}
-.cam-live {
-  position: absolute;
-  top: 4px; right: 5px;
-  background: var(--red);
-  border-radius: 3px;
-  font-size: 7px;
-  color: #fff;
-  font-weight: 700;
-  padding: 1px 4px;
-  letter-spacing: 0.5px;
+/* Atmospheric glow (changes with mode/state) */
+.v1-glow{
+  position:absolute;inset:0;border-radius:50%;
+  pointer-events:none;z-index:0;
+  transition:background 1.4s ease;
 }
 
-.sec-actions {
-  display: flex;
-  gap: 8px;
-  z-index: 2;
-}
-.sec-btn {
-  padding: 8px 16px;
-  border-radius: 10px;
-  border: 1px solid var(--glass-border);
-  background: var(--glass);
-  color: var(--text-2);
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  backdrop-filter: blur(20px);
-}
-.sec-btn:hover, .sec-btn:active { background: var(--glass-hover); color: var(--text); }
-.sec-btn.danger { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.3); color: var(--red); }
-
-/* ═══════════════════════════════════════════
-   BOTTOM TAB NAV
-═══════════════════════════════════════════ */
-#tab-nav {
-  position: absolute;
-  bottom: 0;
-  left: 0; right: 0;
-  height: 72px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  z-index: 100;
-  background: linear-gradient(to top, rgba(6,9,18,0.95) 60%, transparent);
-  transition: opacity 0.4s, transform 0.4s var(--ease-out);
-}
-#tab-nav.hidden {
-  opacity: 0;
-  transform: translateY(20px);
-  pointer-events: none;
+/* shared ring SVG */
+.rsvg{
+  position:absolute;inset:0;width:100%;height:100%;
+  pointer-events:none;z-index:1;
 }
 
-.tab-btn {
-  flex: 1;
-  max-width: 80px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  padding: 8px 0;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-  background: none;
-  -webkit-tap-highlight-color: transparent;
-  color: var(--text-3);
+/* centre readout */
+.v1-set{
+  font-size:80px;font-weight:200;letter-spacing:-5px;
+  color:var(--t0);z-index:3;line-height:1;
+  display:flex;align-items:flex-start;
 }
-.tab-btn:active { transform: scale(0.9); }
-.tab-btn.active { color: var(--text); }
-
-.tab-icon {
-  width: 26px; height: 26px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  transition: all 0.25s var(--ease-spring);
-  background: transparent;
-}
-.tab-btn.active .tab-icon {
-  background: var(--blue);
-  box-shadow: 0 4px 12px var(--blue-glow);
-  transform: scale(1.1);
+.v1-unit{font-size:24px;font-weight:200;color:var(--t1);margin-top:12px}
+/* two-line sub: current room + mode */
+.v1-now{font-size:11px;color:var(--t1);z-index:3;margin-top:7px;letter-spacing:.4px}
+.v1-mode{
+  font-size:9px;letter-spacing:2.5px;text-transform:uppercase;
+  color:var(--t2);z-index:3;margin-top:4px;
+  transition:color .6s;
 }
 
-.tab-label {
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 0.3px;
-  transition: color 0.2s;
+/* 3 mode buttons — placed radially inside arc near bottom */
+.v1-m{
+  position:absolute;z-index:4;
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;cursor:pointer;
+  transform:translate(-50%,-50%);
+  transition:background .2s,border-color .2s,transform .18s var(--e);
 }
+.v1-m:active{transform:translate(-50%,-50%) scale(.85)}
+.v1-m.on{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.22)}
 
-/* ═══════════════════════════════════════════
-   DEVICE DETAIL PANELS (bottom sheets)
-═══════════════════════════════════════════ */
-#panels {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 200;
+/* ════════════════════════════
+   V2 · AMBIANCE  (lights)
+   same arc geometry as V1
+════════════════════════════ */
+#v2{background:var(--bg)}
+.v2-glow{position:absolute;inset:0;border-radius:50%;pointer-events:none;z-index:0;transition:background .9s ease}
+.v2-pct{
+  font-size:76px;font-weight:200;letter-spacing:-4px;
+  color:var(--t0);z-index:3;line-height:1;
+  display:flex;align-items:flex-end;
 }
+.v2-punit{font-size:18px;font-weight:300;color:var(--t1);margin-bottom:10px;margin-left:2px}
+.v2-scene{font-size:10px;color:var(--t1);z-index:3;margin-top:7px;letter-spacing:1.2px;text-transform:uppercase}
 
-.panel {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  background: rgba(13,17,23,0.95);
-  backdrop-filter: blur(40px) saturate(180%);
-  border-top: 1px solid rgba(255,255,255,0.08);
-  border-radius: 24px 24px 50% 50%;
-  padding: 0 24px 20px;
-  transform: translateY(100%);
-  transition: transform 0.42s var(--ease-spring);
-  pointer-events: none;
-  min-height: 68%;
+/* 4 scene buttons, same placement pattern */
+.v2-s{
+  position:absolute;z-index:4;
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;cursor:pointer;
+  transform:translate(-50%,-50%);
+  transition:background .2s,border-color .2s,transform .18s var(--e);
 }
-.panel.open {
-  transform: translateY(0);
-  pointer-events: all;
-}
+.v2-s:active{transform:translate(-50%,-50%) scale(.85)}
+.v2-s.on{background:rgba(251,191,36,.18);border-color:rgba(251,191,36,.32)}
 
-.panel-handle {
-  display: flex;
-  justify-content: center;
-  padding: 10px 0 14px;
-}
-.panel-handle::after {
-  content: '';
-  width: 36px; height: 4px;
-  border-radius: 2px;
-  background: rgba(255,255,255,0.15);
-}
+/* ════════════════════════════
+   V3 · MUSIC
+   Thin progress ring at outer edge, no buttons visible until tap
+════════════════════════════ */
+#v3{background:var(--bg)}
+.v3-bg{position:absolute;inset:0;border-radius:50%;opacity:.42;z-index:0;transition:background 2.2s ease}
+.v3-psvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
+.v3-trk{fill:none;stroke:rgba(255,255,255,.05)}
+.v3-fill{fill:none;stroke:rgba(255,255,255,.38);stroke-linecap:round;transition:stroke-dashoffset .5s linear}
 
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
+.v3-title{
+  font-size:18px;font-weight:500;color:var(--t0);
+  z-index:3;max-width:62%;text-align:center;line-height:1.35;
 }
-.panel-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text);
+.v3-artist{font-size:11px;color:var(--t1);z-index:3;margin-top:4px}
+.v3-play{
+  width:54px;height:54px;border-radius:50%;
+  background:rgba(255,255,255,.92);color:var(--bg);
+  font-size:16px;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  z-index:3;margin-top:18px;
+  box-shadow:0 4px 28px rgba(0,0,0,.55);
+  transition:transform .18s var(--e);
+  font-family:inherit;
 }
-.panel-close {
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.08);
-  border: none;
-  color: var(--text-2);
-  font-size: 14px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-.panel-close:hover { background: rgba(255,255,255,0.14); }
+.v3-play:active{transform:scale(.86)}
 
-/* On/Off header row */
-.panel-power-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 18px;
-  padding: 12px 14px;
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  border-radius: 14px;
+/* ════════════════════════════
+   V4 · STATUS  (security)
+════════════════════════════ */
+#v4{background:var(--bg)}
+.v4-glow{position:absolute;inset:0;border-radius:50%;pointer-events:none;z-index:0;transition:background .9s ease}
+.v4-rsvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
+.v4-ring{fill:none;stroke-width:1;transition:stroke .9s ease}
+.v4-icon{font-size:60px;z-index:3}
+.v4-title{font-size:17px;font-weight:600;color:var(--t0);z-index:3;margin-top:8px;letter-spacing:-.3px}
+.v4-sub{font-size:10px;color:var(--t1);z-index:3;margin-top:3px}
+.v4-btn{
+  margin-top:20px;z-index:3;font-family:inherit;
+  padding:10px 28px;border-radius:24px;
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.05);color:var(--t1);
+  font-size:12px;font-weight:600;cursor:pointer;letter-spacing:.4px;
+  transition:all .2s;
 }
-.panel-power-label { font-size: 13px; color: var(--text-2); }
-.power-toggle {
-  width: 44px; height: 26px;
-  border-radius: 13px;
-  background: rgba(255,255,255,0.1);
-  position: relative;
-  cursor: pointer;
-  transition: background 0.25s;
-}
-.power-toggle::after {
-  content: '';
-  position: absolute;
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.6);
-  top: 3px; left: 3px;
-  transition: transform 0.25s var(--ease-spring), background 0.25s;
-}
-.power-toggle.on { background: var(--blue); }
-.power-toggle.on::after { transform: translateX(18px); background: #fff; }
+.v4-btn:active{transform:scale(.91)}
+.v4-btn.disarm{border-color:rgba(255,69,58,.28);background:rgba(255,69,58,.07);color:#FF453A}
+.v4-btn.arm{border-color:rgba(48,209,88,.28);background:rgba(48,209,88,.07);color:#30D158}
 
-/* ── AC PANEL ── */
-.temp-dial {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 18px;
-}
-.temp-adj-btn {
-  width: 44px; height: 44px;
-  border-radius: 50%;
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  color: var(--text);
-  font-size: 20px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s var(--ease-spring);
-}
-.temp-adj-btn:active { transform: scale(0.88); background: rgba(59,130,246,0.2); }
-.temp-display {
-  text-align: center;
-}
-.temp-big { font-size: 42px; font-weight: 700; color: var(--text); letter-spacing: -2px; }
-.temp-sub { font-size: 11px; color: var(--text-3); }
-
-.mode-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 7px;
-  margin-bottom: 16px;
-}
-.mode-btn {
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  border-radius: 12px;
-  padding: 8px 4px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.mode-btn.active {
-  background: rgba(59,130,246,0.2);
-  border-color: rgba(59,130,246,0.4);
-}
-.mode-btn:active { transform: scale(0.93); }
-.mode-icon { font-size: 16px; display: block; }
-.mode-label { font-size: 9px; color: var(--text-2); margin-top: 3px; font-weight: 500; }
-
-.fan-speed {
-  display: flex;
-  gap: 6px;
-}
-.fan-btn {
-  flex: 1;
-  padding: 8px 4px;
-  border-radius: 10px;
-  border: 1px solid var(--glass-border);
-  background: var(--glass);
-  color: var(--text-2);
-  font-size: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  text-align: center;
-  transition: all 0.2s;
-}
-.fan-btn.active {
-  background: rgba(59,130,246,0.2);
-  border-color: rgba(59,130,246,0.4);
-  color: var(--blue);
-}
-
-/* ── LIGHTS PANEL ── */
-.brightness-wrap {
-  margin-bottom: 18px;
-}
-.brightness-label-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--text-2);
-  margin-bottom: 8px;
-}
-.brightness-track {
-  width: 100%;
-  height: 8px;
-  background: rgba(255,255,255,0.08);
-  border-radius: 4px;
-  position: relative;
-  cursor: pointer;
-}
-.brightness-fill {
-  height: 100%;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #FCD34D, #FBBF24);
-  transition: width 0.1s;
-  position: relative;
-}
-.brightness-fill::after {
-  content: '';
-  position: absolute;
-  right: -6px; top: -4px;
-  width: 16px; height: 16px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-}
-
-.color-temp-track {
-  width: 100%;
-  height: 8px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #FCD34D, #fff, #BAE6FD);
-  margin-bottom: 16px;
-  cursor: pointer;
-}
-
-.scene-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 7px;
-}
-.scene-btn {
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  border-radius: 12px;
-  padding: 10px 4px 8px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.scene-btn.active {
-  background: rgba(251,191,36,0.15);
-  border-color: rgba(251,191,36,0.3);
-}
-.scene-btn:active { transform: scale(0.93); }
-.scene-icon { font-size: 18px; display: block; }
-.scene-label { font-size: 9px; color: var(--text-2); margin-top: 4px; font-weight: 500; }
-
-/* ── TV PANEL ── */
-.vol-wrap {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 18px;
-}
-.vol-icon { font-size: 20px; }
-.vol-slider {
-  flex: 1;
-  height: 6px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 3px;
-  position: relative;
-  cursor: pointer;
-}
-.vol-fill {
-  height: 100%;
-  width: 60%;
-  background: var(--blue);
-  border-radius: 3px;
-  position: relative;
-}
-.vol-fill::after {
-  content: '';
-  position: absolute;
-  right: -6px; top: -5px;
-  width: 16px; height: 16px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-}
-.vol-num { font-size: 13px; font-weight: 600; color: var(--text); min-width: 28px; }
-
-.input-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 7px;
-  margin-bottom: 16px;
-}
-.input-btn {
-  padding: 10px 6px;
-  border-radius: 12px;
-  border: 1px solid var(--glass-border);
-  background: var(--glass);
-  color: var(--text-2);
-  font-size: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  text-align: center;
-  transition: all 0.2s;
-}
-.input-btn.active {
-  background: rgba(59,130,246,0.2);
-  border-color: rgba(59,130,246,0.4);
-  color: var(--blue);
-}
-
-.tv-remote {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 7px;
-}
-.rem-btn {
-  padding: 10px;
-  border-radius: 12px;
-  border: 1px solid var(--glass-border);
-  background: var(--glass);
-  color: var(--text);
-  font-size: 14px;
-  cursor: pointer;
-  text-align: center;
-  transition: all 0.2s;
-}
-.rem-btn:active { transform: scale(0.9); background: rgba(59,130,246,0.2); }
-
-/* ═══════════════════════════════════════════
-   VIEW-LEVEL TITLE BAR
-═══════════════════════════════════════════ */
-.view-topbar {
-  position: absolute;
-  top: 14%;
-  left: 0; right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 20;
-  padding: 0 20px;
-}
-.topbar-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-2);
-  letter-spacing: 0.5px;
-}
-
-/* ═══════════════════════════════════════════
-   OUTER CONTROLS (desktop)
-═══════════════════════════════════════════ */
-#outer-controls {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 8px;
-  background: rgba(13,17,23,0.8);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
-  border-radius: 50px;
-  padding: 8px 14px;
-  z-index: 9999;
-}
-
-.oc-btn {
-  padding: 5px 12px;
-  border-radius: 20px;
-  border: none;
-  background: transparent;
-  color: var(--text-2);
-  font-size: 11px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-.oc-btn:hover { background: var(--glass); color: var(--text); }
-.oc-btn.active { background: var(--blue); color: #fff; }
-
-.oc-sep {
-  width: 1px;
-  background: var(--glass-border);
-  margin: 4px 0;
-}
-
-/* ═══════════════════════════════════════════
-   THEME VARIANTS
-═══════════════════════════════════════════ */
-body.theme-warm {
-  --blue: #F59E0B;
-  --blue-glow: rgba(245,158,11,0.3);
-  --purple: #EF4444;
-  --bg0: #0D0906;
-  --bg1: #130E0A;
-}
-body.theme-warm #outer {
-  background: radial-gradient(ellipse at 50% 0%, rgba(245,158,11,0.1) 0%, transparent 60%), #0D0906;
-}
-
-body.theme-cyber {
-  --blue: #00FFFF;
-  --blue-glow: rgba(0,255,255,0.3);
-  --purple: #FF006E;
-  --bg0: #050510;
-  --bg1: #0A0A1A;
-  --glass: rgba(0,255,255,0.05);
-  --glass-border: rgba(0,255,255,0.12);
-}
-body.theme-cyber .standby-time { text-shadow: 0 0 30px rgba(0,255,255,0.7); }
-body.theme-cyber .bezel {
-  box-shadow: 0 0 0 1px rgba(0,255,255,0.2), 0 40px 120px rgba(0,0,0,0.9), 0 0 60px rgba(0,255,255,0.08);
-}
-
-body.theme-serene {
-  --blue: #14B8A6;
-  --blue-glow: rgba(20,184,166,0.3);
-  --purple: #3B82F6;
-  --bg0: #060D12;
-  --bg1: #0A1520;
-}
-
-/* ═══════════════════════════════════════════
-   RESPONSIVE (MOBILE)
-═══════════════════════════════════════════ */
-@media (max-width: 700px) {
-  :root { --r: min(47vw, 47vh); }
-  #outer-controls { display: none; }
-}
-@media (max-width: 420px) {
-  :root { --r: 46vw; }
-  .standby-time { font-size: 52px !important; }
-}
-@media (hover: none) {
-  .device-card:hover { transform: none; }
+/* ── responsive ── */
+@media(max-width:640px){
+  :root{--D:min(90vw,90vh)}
+  .bezel{width:calc(var(--D)+min(3.5vw,20px));height:calc(var(--D)+min(3.5vw,20px));padding:min(1.8vw,10px)}
+  .v0-time{font-size:clamp(54px,15vw,94px)}
+  .v1-set{font-size:clamp(52px,13vw,80px)}
+  .v2-pct{font-size:clamp(50px,12.5vw,76px)}
 }
 </style>
 </head>
-<body class="theme-default">
+<body>
+<div id="shell">
+<div class="bezel">
+<div class="screen" id="screen">
 
-<div id="outer">
-  <div class="device" id="device">
-    <div class="bezel">
-      <div class="screen">
-        <div class="glare"></div>
-        <div class="views" id="views">
-
-          <!-- ══════ VIEW 0: STANDBY ══════ -->
-          <div class="view active" id="v-standby" onclick="wakeUp()">
-            <div class="standby-ambient"></div>
-            <div class="standby-particles" id="particles"></div>
-            <div class="standby-time" id="s-time">00:00</div>
-            <div class="standby-date" id="s-date">Friday, April 24</div>
-            <div class="standby-weather">
-              <span>⛅</span>
-              <span id="s-weather">22°C · Seoul</span>
-            </div>
-            <div class="standby-tap-hint" id="tap-hint">tap to wake</div>
-          </div>
-
-          <!-- ══════ VIEW 1: HOME ══════ -->
-          <div class="view" id="v-home">
-            <div class="home-bg"></div>
-            <div class="view-topbar"><span class="topbar-title" id="h-title">Good Evening</span></div>
-            <div class="home-greeting" id="h-greeting">HOME</div>
-            <div class="home-temp-hero">
-              <span class="home-temp-num">22</span>
-              <span class="home-temp-unit">°C</span>
-            </div>
-            <div class="home-weather-desc" id="h-desc">Partly Cloudy · Seoul</div>
-            <div class="home-rooms">
-              <button class="room-pill active" data-room="living" onclick="setRoom(this)">Living</button>
-              <button class="room-pill" data-room="bedroom" onclick="setRoom(this)">Bedroom</button>
-              <button class="room-pill" data-room="kitchen" onclick="setRoom(this)">Kitchen</button>
-            </div>
-            <div class="home-devices" id="device-grid"></div>
-          </div>
-
-          <!-- ══════ VIEW 2: MUSIC ══════ -->
-          <div class="view" id="v-music">
-            <div class="music-bg" id="music-bg"></div>
-            <div class="music-visualizer" id="visualizer"></div>
-            <div class="view-topbar"><span class="topbar-title">Now Playing</span></div>
-            <div class="music-art-wrap">
-              <div class="music-art" id="m-art">🎵</div>
-            </div>
-            <div class="music-title" id="m-title">Clair de Lune</div>
-            <div class="music-artist" id="m-artist">Claude Debussy</div>
-            <div class="music-progress">
-              <div class="progress-track" id="prog-track">
-                <div class="progress-fill" id="prog-fill"></div>
-              </div>
-              <div class="progress-times">
-                <span id="m-cur">1:12</span>
-                <span id="m-tot">5:03</span>
-              </div>
-            </div>
-            <div class="music-controls">
-              <button class="mc-btn" onclick="prevTrack()">⏮</button>
-              <button class="mc-play" id="m-play" onclick="togglePlay()">▶</button>
-              <button class="mc-btn" onclick="nextTrack()">⏭</button>
-            </div>
-          </div>
-
-          <!-- ══════ VIEW 3: AI ══════ -->
-          <div class="view" id="v-ai">
-            <div class="ai-bg"></div>
-            <div class="view-topbar"><span class="topbar-title">AI Assistant</span></div>
-            <div class="ai-orb" id="ai-orb" onclick="triggerAI()">🎤</div>
-            <div class="ai-label" id="ai-label">Tap to speak</div>
-            <div class="ai-chat" id="ai-chat">
-              <div class="bubble ai">Hi! How can I help you today?</div>
-            </div>
-          </div>
-
-          <!-- ══════ VIEW 4: SECURITY ══════ -->
-          <div class="view" id="v-security">
-            <div class="view-topbar"><span class="topbar-title">Security</span></div>
-            <div class="sec-status" id="sec-badge">
-              <div class="sec-dot"></div>
-              <span id="sec-text">System Armed</span>
-            </div>
-            <div class="cam-grid">
-              <div class="cam"><div class="cam-body">🚪</div><div class="cam-label">Front Door</div><div class="cam-live">LIVE</div></div>
-              <div class="cam"><div class="cam-body">🌿</div><div class="cam-label">Garden</div><div class="cam-live">LIVE</div></div>
-              <div class="cam"><div class="cam-body">🚗</div><div class="cam-label">Garage</div><div class="cam-live">LIVE</div></div>
-              <div class="cam"><div class="cam-body">🛋</div><div class="cam-label">Living Rm</div><div class="cam-live">LIVE</div></div>
-            </div>
-            <div class="sec-actions">
-              <button class="sec-btn danger" onclick="toggleArm()" id="arm-btn">Disarm</button>
-              <button class="sec-btn" onclick="goView(3)">🎤 Speak</button>
-            </div>
-          </div>
-
-        </div><!-- /views -->
-
-        <!-- Tab Navigation -->
-        <div id="tab-nav" class="hidden">
-          <button class="tab-btn active" data-v="1" onclick="goView(1)">
-            <div class="tab-icon">🏠</div>
-            <span class="tab-label">Home</span>
-          </button>
-          <button class="tab-btn" data-v="2" onclick="goView(2)">
-            <div class="tab-icon">🎵</div>
-            <span class="tab-label">Music</span>
-          </button>
-          <button class="tab-btn" data-v="3" onclick="goView(3)">
-            <div class="tab-icon">🎤</div>
-            <span class="tab-label">AI</span>
-          </button>
-          <button class="tab-btn" data-v="4" onclick="goView(4)">
-            <div class="tab-icon">🔒</div>
-            <span class="tab-label">Security</span>
-          </button>
-        </div>
-
-        <!-- Device Detail Panels -->
-        <div id="panels">
-
-          <!-- AC Panel -->
-          <div class="panel" id="panel-ac">
-            <div class="panel-handle"></div>
-            <div class="panel-header">
-              <span class="panel-title">❄️ Air Conditioner</span>
-              <button class="panel-close" onclick="closePanel('ac')">✕</button>
-            </div>
-            <div class="panel-power-row">
-              <span class="panel-power-label">Power</span>
-              <div class="power-toggle on" id="ac-power" onclick="togglePower('ac')"></div>
-            </div>
-            <div class="temp-dial">
-              <button class="temp-adj-btn" onclick="adjustTemp(-1)">−</button>
-              <div class="temp-display">
-                <div class="temp-big"><span id="ac-temp">24</span>°</div>
-                <div class="temp-sub">Target Temperature</div>
-              </div>
-              <button class="temp-adj-btn" onclick="adjustTemp(1)">+</button>
-            </div>
-            <div class="mode-grid">
-              <div class="mode-btn active" data-mode="cool" onclick="setMode(this)"><span class="mode-icon">🌬️</span><span class="mode-label">Cool</span></div>
-              <div class="mode-btn" data-mode="heat" onclick="setMode(this)"><span class="mode-icon">🔥</span><span class="mode-label">Heat</span></div>
-              <div class="mode-btn" data-mode="dry"  onclick="setMode(this)"><span class="mode-icon">💧</span><span class="mode-label">Dry</span></div>
-              <div class="mode-btn" data-mode="fan"  onclick="setMode(this)"><span class="mode-icon">💨</span><span class="mode-label">Fan</span></div>
-            </div>
-            <div class="fan-speed">
-              <button class="fan-btn" data-f="auto" onclick="setFan(this)">Auto</button>
-              <button class="fan-btn active" data-f="low" onclick="setFan(this)">Low</button>
-              <button class="fan-btn" data-f="med" onclick="setFan(this)">Med</button>
-              <button class="fan-btn" data-f="high" onclick="setFan(this)">High</button>
-            </div>
-          </div>
-
-          <!-- Lights Panel -->
-          <div class="panel" id="panel-light">
-            <div class="panel-handle"></div>
-            <div class="panel-header">
-              <span class="panel-title">💡 Lighting</span>
-              <button class="panel-close" onclick="closePanel('light')">✕</button>
-            </div>
-            <div class="panel-power-row">
-              <span class="panel-power-label">Power</span>
-              <div class="power-toggle on" id="light-power" onclick="togglePower('light')"></div>
-            </div>
-            <div class="brightness-wrap">
-              <div class="brightness-label-row">
-                <span>Brightness</span>
-                <span id="bright-val">75%</span>
-              </div>
-              <div class="brightness-track" id="bright-track" onclick="setBrightness(event)">
-                <div class="brightness-fill" id="bright-fill" style="width:75%"></div>
-              </div>
-            </div>
-            <div class="brightness-label-row" style="margin-bottom:6px">
-              <span style="font-size:12px;color:var(--text-2)">Color Temperature</span>
-            </div>
-            <div class="color-temp-track" id="ct-track" onclick="setColorTemp(event)"></div>
-            <div style="font-size:12px;color:var(--text-2);margin-bottom:10px;font-weight:600">Scenes</div>
-            <div class="scene-grid">
-              <div class="scene-btn active" onclick="setScene(this,'reading')"><span class="scene-icon">📖</span><span class="scene-label">Reading</span></div>
-              <div class="scene-btn" onclick="setScene(this,'movie')"><span class="scene-icon">🎬</span><span class="scene-label">Movie</span></div>
-              <div class="scene-btn" onclick="setScene(this,'relax')"><span class="scene-icon">🌙</span><span class="scene-label">Relax</span></div>
-              <div class="scene-btn" onclick="setScene(this,'bright')"><span class="scene-icon">☀️</span><span class="scene-label">Bright</span></div>
-            </div>
-          </div>
-
-          <!-- TV Panel -->
-          <div class="panel" id="panel-tv">
-            <div class="panel-handle"></div>
-            <div class="panel-header">
-              <span class="panel-title">📺 Television</span>
-              <button class="panel-close" onclick="closePanel('tv')">✕</button>
-            </div>
-            <div class="panel-power-row">
-              <span class="panel-power-label">Power</span>
-              <div class="power-toggle" id="tv-power" onclick="togglePower('tv')"></div>
-            </div>
-            <div class="vol-wrap">
-              <span class="vol-icon">🔈</span>
-              <div class="vol-slider" id="vol-track" onclick="setVolume(event)">
-                <div class="vol-fill" id="vol-fill"></div>
-              </div>
-              <span class="vol-num" id="vol-num">60</span>
-              <span class="vol-icon">🔊</span>
-            </div>
-            <div style="font-size:12px;color:var(--text-2);margin-bottom:8px;font-weight:600">Input</div>
-            <div class="input-grid">
-              <button class="input-btn active" onclick="setInput(this)">HDMI 1</button>
-              <button class="input-btn" onclick="setInput(this)">HDMI 2</button>
-              <button class="input-btn" onclick="setInput(this)">Netflix</button>
-              <button class="input-btn" onclick="setInput(this)">YouTube</button>
-              <button class="input-btn" onclick="setInput(this)">AirPlay</button>
-              <button class="input-btn" onclick="setInput(this)">USB</button>
-            </div>
-            <div class="tv-remote">
-              <div class="rem-btn" onclick="">⏮</div>
-              <div class="rem-btn" onclick="">⏸</div>
-              <div class="rem-btn" onclick="">⏭</div>
-            </div>
-          </div>
-
-          <!-- Air Purifier Panel -->
-          <div class="panel" id="panel-purifier">
-            <div class="panel-handle"></div>
-            <div class="panel-header">
-              <span class="panel-title">🌀 Air Purifier</span>
-              <button class="panel-close" onclick="closePanel('purifier')">✕</button>
-            </div>
-            <div class="panel-power-row">
-              <span class="panel-power-label">Power</span>
-              <div class="power-toggle on" id="pur-power" onclick="togglePower('purifier')"></div>
-            </div>
-            <div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);border-radius:14px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between">
-              <div>
-                <div style="font-size:11px;color:var(--text-3);margin-bottom:2px">Air Quality</div>
-                <div style="font-size:20px;font-weight:700;color:var(--green)">Good</div>
-              </div>
-              <div style="font-size:32px">😊</div>
-            </div>
-            <div style="font-size:12px;color:var(--text-2);margin-bottom:8px;font-weight:600">Mode</div>
-            <div class="mode-grid">
-              <div class="mode-btn active" onclick="setAirMode(this)"><span class="mode-icon">🤖</span><span class="mode-label">Auto</span></div>
-              <div class="mode-btn" onclick="setAirMode(this)"><span class="mode-icon">😴</span><span class="mode-label">Sleep</span></div>
-              <div class="mode-btn" onclick="setAirMode(this)"><span class="mode-icon">💨</span><span class="mode-label">Turbo</span></div>
-              <div class="mode-btn" onclick="setAirMode(this)"><span class="mode-icon">🍃</span><span class="mode-label">Eco</span></div>
-            </div>
-            <div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:14px;padding:12px 14px;margin-top:12px">
-              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-2);margin-bottom:8px">
-                <span>Filter Status</span><span style="color:var(--green)">78% remaining</span>
-              </div>
-              <div style="background:rgba(255,255,255,0.08);height:5px;border-radius:3px;overflow:hidden">
-                <div style="width:78%;height:100%;background:linear-gradient(90deg,var(--green),var(--teal));border-radius:3px"></div>
-              </div>
-            </div>
-          </div>
-
-        </div><!-- /panels -->
-
-      </div><!-- /screen -->
-    </div><!-- /bezel -->
-  </div><!-- /device -->
-</div><!-- /outer -->
-
-<!-- Outer Controls -->
-<div id="outer-controls">
-  <span style="font-size:11px;color:var(--text-3);font-weight:600;letter-spacing:1px">◎ CIRCLE HUB</span>
-  <div class="oc-sep"></div>
-  <button class="oc-btn active" onclick="setTheme('default',this)">Default</button>
-  <button class="oc-btn" onclick="setTheme('warm',this)">Warm</button>
-  <button class="oc-btn" onclick="setTheme('serene',this)">Serene</button>
-  <button class="oc-btn" onclick="setTheme('cyber',this)">Cyber</button>
-  <div class="oc-sep"></div>
-  <button class="oc-btn active" onclick="setLang('en',this)">EN</button>
-  <button class="oc-btn" onclick="setLang('kr',this)">한국어</button>
+<!-- ═══ V0 · CLOCK ═══ -->
+<div class="view active" id="v0">
+  <div class="v0-amb"></div>
+  <div class="v0-time" id="v0t">00:00</div>
+  <div class="v0-date" id="v0d"></div>
+  <div class="v0-hint">tap to wake</div>
 </div>
 
+<!-- ═══ V1 · TEMPERATURE ═══ -->
+<div class="view" id="v1">
+  <div class="v1-glow" id="v1g"></div>
+  <svg class="rsvg" viewBox="0 0 560 560" id="v1svg">
+    <!-- Track 270° arc, r=254, rotate(135) starts at CSS 225° (bottom-left) -->
+    <circle id="v1trk" cx="280" cy="280" r="254"
+      fill="none" stroke="rgba(255,255,255,.05)" stroke-width="5"
+      stroke-linecap="round"/>
+    <!-- Fill arc -->
+    <circle id="v1arc" cx="280" cy="280" r="254"
+      fill="none" stroke-width="5" stroke-linecap="round"
+      style="transition:stroke-dashoffset .12s linear,stroke .7s ease"/>
+    <!-- Drag handle -->
+    <circle id="v1dot" cx="280" cy="280" r="9"
+      fill="white" style="filter:drop-shadow(0 2px 10px rgba(0,0,0,.75));cursor:grab"/>
+    <!-- Arc-end tick marks -->
+    <circle id="tA" r="3" fill="rgba(255,255,255,.25)"/>
+    <circle id="tB" r="3" fill="rgba(255,255,255,.25)"/>
+  </svg>
+  <div class="v1-set"><span id="v1n">24</span><span class="v1-unit">°</span></div>
+  <div class="v1-now" id="v1now">Room 22°</div>
+  <div class="v1-mode" id="v1mode">Cooling</div>
+  <!-- 3 mode buttons placed radially (by JS) -->
+  <div class="v1-m" id="m-cool" data-m="cool" onclick="setMode(this)">🌬️</div>
+  <div class="v1-m" id="m-eco"  data-m="eco"  onclick="setMode(this)">🍃</div>
+  <div class="v1-m" id="m-heat" data-m="heat" onclick="setMode(this)">🔥</div>
+</div>
+
+<!-- ═══ V2 · AMBIANCE ═══ -->
+<div class="view" id="v2">
+  <div class="v2-glow" id="v2g"></div>
+  <svg class="rsvg" viewBox="0 0 560 560" id="v2svg">
+    <circle id="v2trk" cx="280" cy="280" r="254"
+      fill="none" stroke="rgba(255,255,255,.05)" stroke-width="5"
+      stroke-linecap="round"/>
+    <circle id="v2arc" cx="280" cy="280" r="254"
+      fill="none" stroke="#FBBF24" stroke-width="5" stroke-linecap="round"
+      style="transition:stroke-dashoffset .12s linear"/>
+    <circle id="v2dot" cx="280" cy="280" r="9"
+      fill="white" style="filter:drop-shadow(0 2px 10px rgba(0,0,0,.75));cursor:grab"/>
+  </svg>
+  <div class="v2-pct"><span id="v2n">75</span><span class="v2-punit">%</span></div>
+  <div class="v2-scene" id="v2sc">Reading</div>
+  <!-- 4 scene buttons placed radially (by JS) -->
+  <div class="v2-s on"  data-sc="Reading" data-brt="65"  onclick="setScene(this)">📖</div>
+  <div class="v2-s"     data-sc="Movie"   data-brt="28"  onclick="setScene(this)">🎬</div>
+  <div class="v2-s"     data-sc="Relax"   data-brt="22"  onclick="setScene(this)">🌙</div>
+  <div class="v2-s"     data-sc="Bright"  data-brt="100" onclick="setScene(this)">☀️</div>
+</div>
+
+<!-- ═══ V3 · MUSIC ═══ -->
+<div class="view" id="v3">
+  <div class="v3-bg" id="v3bg"></div>
+  <svg class="v3-psvg" viewBox="0 0 560 560">
+    <circle class="v3-trk" cx="280" cy="280" r="270" stroke-width="2"/>
+    <circle class="v3-fill" cx="280" cy="280" r="270" stroke-width="2"
+      transform="rotate(-90 280 280)"
+      id="v3prog"
+      stroke-dasharray="1696.5 1696.5" stroke-dashoffset="1696.5"/>
+  </svg>
+  <div class="v3-title"  id="v3t">Clair de Lune</div>
+  <div class="v3-artist" id="v3a">Debussy</div>
+  <button class="v3-play" id="v3p" onclick="togglePlay()">▶</button>
+</div>
+
+<!-- ═══ V4 · STATUS ═══ -->
+<div class="view" id="v4">
+  <div class="v4-glow" id="v4g"
+    style="background:radial-gradient(ellipse at 50% 44%,rgba(48,209,88,.10) 0%,transparent 60%)"></div>
+  <svg class="v4-rsvg" viewBox="0 0 560 560">
+    <circle class="v4-ring" id="v4ring" cx="280" cy="280" r="264"
+      stroke="rgba(48,209,88,.14)"/>
+  </svg>
+  <div class="v4-icon"  id="v4i">🔒</div>
+  <div class="v4-title" id="v4ti">Armed</div>
+  <div class="v4-sub"   id="v4sb">All sensors normal</div>
+  <button class="v4-btn disarm" id="v4btn" onclick="toggleArm()">Disarm</button>
+</div>
+
+<!-- ═══ ARC NAV DOTS ═══ -->
+<div id="nav" style="opacity:0">
+  <div class="nd on" data-i="0" onclick="go(0)"></div>
+  <div class="nd"    data-i="1" onclick="go(1)"></div>
+  <div class="nd"    data-i="2" onclick="go(2)"></div>
+  <div class="nd"    data-i="3" onclick="go(3)"></div>
+  <div class="nd"    data-i="4" onclick="go(4)"></div>
+</div>
+
+</div><!-- /screen -->
+</div><!-- /bezel -->
+</div><!-- /shell -->
+
 <script>
-/* ═══════════════════════════════════════════
-   STATE
-═══════════════════════════════════════════ */
-const S = {
-  view: 0,
-  lang: 'en',
-  theme: 'default',
-  room: 'living',
-  acTemp: 24,
-  armed: true,
-  musicPlaying: false,
-  musicIdx: 0,
-  musicSec: 72,
-  brightness: 75,
-  volume: 60,
+/* ════════════════════════════════════
+   ARC CONSTANTS  (560×560 SVG, r=254)
+   SVG rotate(135 280 280) → arc starts CSS 225° (7:30 / bottom-left)
+   Goes CW 270° → ends CSS 135° (4:30 / bottom-right)
+════════════════════════════════════ */
+const AR = 254;        // arc radius in SVG units
+const CX = 280, CY = 280;  // SVG centre
+const START_DEG = 225; // CSS convention: 0°=top, CW
+const SPAN_DEG  = 270;
+const ARC_C     = 2 * Math.PI * AR;
+const ARC_LEN   = ARC_C * (SPAN_DEG / 360); // 270° portion
+const ARC_GAP   = ARC_C - ARC_LEN;
+const DA        = `${ARC_LEN.toFixed(2)} ${ARC_GAP.toFixed(2)}`;
+const ROT_ATTR  = `rotate(135 ${CX} ${CY})`;
+
+/* Convert fraction [0–1] → SVG (x,y) on the arc */
+function fToXY(f) {
+  const deg = START_DEG + f * SPAN_DEG;
+  const rad = (deg - 90) * Math.PI / 180;
+  return { x: CX + AR * Math.cos(rad), y: CY + AR * Math.sin(rad) };
+}
+
+/* Convert fraction → stroke-dashoffset (0=full arc, ARC_LEN=empty) */
+function fToOff(f) {
+  return ARC_LEN * (1 - Math.max(0, Math.min(1, f)));
+}
+
+/* Pointer event → fraction along arc */
+function pToFrac(e, svg) {
+  const rect  = svg.getBoundingClientRect();
+  const scale = 560 / rect.width;
+  const px = e.touches ? e.touches[0].clientX : e.clientX;
+  const py = e.touches ? e.touches[0].clientY : e.clientY;
+  const sx = (px - rect.left) * scale - CX;
+  const sy = (py - rect.top)  * scale - CY;
+  let deg = Math.atan2(sy, sx) * (180 / Math.PI) + 90;
+  if (deg < 0) deg += 360;
+  let d = deg - START_DEG;
+  if (d < 0) d += 360;
+  // If pointer is in the gap (below bottom-left to bottom-right shortcut area)
+  if (d > SPAN_DEG + 10) d = d > SPAN_DEG + (360 - SPAN_DEG) / 2 ? 0 : SPAN_DEG;
+  return Math.max(0, Math.min(1, d / SPAN_DEG));
+}
+
+/* Is pointer near the arc edge? (drag zone) */
+function nearArc(e, svg) {
+  const rect  = svg.getBoundingClientRect();
+  const scale = 560 / rect.width;
+  const px = e.touches ? e.touches[0].clientX : e.clientX;
+  const py = e.touches ? e.touches[0].clientY : e.clientY;
+  const sx = (px - rect.left) * scale - CX;
+  const sy = (py - rect.top)  * scale - CY;
+  const d  = Math.sqrt(sx * sx + sy * sy);
+  return d > AR - 58 && d < AR + 58;
+}
+
+/* Init an arc: set dasharray + rotation on track and fill circles */
+function initArc(trkId, fillId) {
+  const trk  = document.getElementById(trkId);
+  const fill = document.getElementById(fillId);
+  trk.setAttribute('stroke-dasharray', DA);
+  trk.setAttribute('transform', ROT_ATTR);
+  fill.setAttribute('stroke-dasharray', DA);
+  fill.setAttribute('transform', ROT_ATTR);
+  fill.setAttribute('stroke-dashoffset', ARC_LEN.toFixed(2)); // empty initially
+}
+
+/* Update arc fill + handle dot */
+function updateArc(fillId, dotId, frac) {
+  document.getElementById(fillId).setAttribute('stroke-dashoffset', fToOff(frac).toFixed(2));
+  const p = fToXY(frac);
+  document.getElementById(dotId).setAttribute('cx', p.x.toFixed(2));
+  document.getElementById(dotId).setAttribute('cy', p.y.toFixed(2));
+}
+
+/* Attach drag handlers to an SVG, call cb(frac) on drag */
+function attachDrag(svgId, cb) {
+  const svg = document.getElementById(svgId);
+  let active = false;
+  svg.addEventListener('mousedown',  e => { if (nearArc(e, svg)) { active=true; e.preventDefault(); cb(pToFrac(e,svg)); } }, {passive:false});
+  svg.addEventListener('touchstart', e => { if (nearArc(e, svg)) { active=true; e.preventDefault(); cb(pToFrac(e,svg)); } }, {passive:false});
+  document.addEventListener('mousemove',  e => { if (active) { e.preventDefault(); cb(pToFrac(e,svg)); } }, {passive:false});
+  document.addEventListener('touchmove',  e => { if (active) { e.preventDefault(); cb(pToFrac(e,svg)); } }, {passive:false});
+  document.addEventListener('mouseup',  () => active=false);
+  document.addEventListener('touchend', () => active=false);
+}
+
+/* ════════════════════════════════════
+   TEMPERATURE  (V1)
+════════════════════════════════════ */
+const CLIM = { temp:24, min:16, max:30, mode:'cool' };
+const MODES = {
+  cool:{ stroke:'#4A9EFF', glow:'rgba(74,158,255,.16)',  label:'Cooling' },
+  eco: { stroke:'#30D158', glow:'rgba(48,209,88,.14)',   label:'Eco' },
+  heat:{ stroke:'#FF8C42', glow:'rgba(255,140,66,.17)',  label:'Heating' },
 };
 
-/* ═══════════════════════════════════════════
-   TRACKS
-═══════════════════════════════════════════ */
-const TRACKS = {
-  en: [
-    { t:'Clair de Lune',      a:'Claude Debussy',   e:'🎹', dur:303, bg:'radial-gradient(ellipse at 40% 40%, rgba(59,130,246,0.3) 0%, rgba(168,85,247,0.2) 50%, transparent 70%)' },
-    { t:'Bohemian Rhapsody',  a:'Queen',             e:'🎸', dur:355, bg:'radial-gradient(ellipse at 60% 30%, rgba(239,68,68,0.3) 0%, rgba(245,158,11,0.2) 60%, transparent 80%)' },
-    { t:'Blinding Lights',    a:'The Weeknd',        e:'🌙', dur:200, bg:'radial-gradient(ellipse at 50% 50%, rgba(168,85,247,0.35) 0%, rgba(59,130,246,0.15) 60%, transparent 80%)' },
-    { t:'Love Poem',          a:'IU',                e:'💜', dur:286, bg:'radial-gradient(ellipse at 35% 60%, rgba(168,85,247,0.3) 0%, rgba(236,72,153,0.2) 60%, transparent 80%)' },
-    { t:'Midnight Rain',      a:'Taylor Swift',      e:'🌧️', dur:338, bg:'radial-gradient(ellipse at 50% 20%, rgba(99,102,241,0.3) 0%, rgba(14,165,233,0.2) 60%, transparent 80%)' },
-  ],
-  kr: [
-    { t:'봄여름가을겨울',    a:'봄여름가을겨울',        e:'🌸', dur:258, bg:'radial-gradient(ellipse at 50% 50%, rgba(236,72,153,0.25) 0%, rgba(245,158,11,0.15) 60%, transparent 80%)' },
-    { t:'사랑했지만',         a:'김광석',               e:'🎸', dur:242, bg:'radial-gradient(ellipse at 40% 40%, rgba(59,130,246,0.3) 0%, rgba(99,102,241,0.2) 60%, transparent 80%)' },
-    { t:'빗소리',             a:'아이유',               e:'🌧️', dur:225, bg:'radial-gradient(ellipse at 60% 30%, rgba(14,165,233,0.3) 0%, rgba(99,102,241,0.2) 60%, transparent 80%)' },
-    { t:'Dynamite',           a:'BTS',                 e:'✨', dur:199, bg:'radial-gradient(ellipse at 50% 50%, rgba(245,158,11,0.3) 0%, rgba(239,68,68,0.2) 60%, transparent 80%)' },
-  ],
-};
+initArc('v1trk','v1arc');
 
-/* ═══════════════════════════════════════════
-   ROOMS / DEVICES
-═══════════════════════════════════════════ */
-const ROOMS = {
-  living: [
-    { id:'ac',       icon:'❄️', nameEn:'AC',          nameKr:'에어컨',    on:true,  panel:'ac'       },
-    { id:'light1',   icon:'💡', nameEn:'Main Light',  nameKr:'거실등',    on:true,  panel:'light'    },
-    { id:'tv',       icon:'📺', nameEn:'TV',          nameKr:'TV',        on:false, panel:'tv'       },
-    { id:'purifier', icon:'🌀', nameEn:'Air Purifier',nameKr:'공기청정기', on:true,  panel:'purifier' },
-  ],
-  bedroom: [
-    { id:'b-light',  icon:'💡', nameEn:'Bed Light',   nameKr:'침실등',    on:false, panel:'light'    },
-    { id:'b-ac',     icon:'❄️', nameEn:'AC',          nameKr:'에어컨',    on:false, panel:'ac'       },
-    { id:'b-speaker',icon:'🔊', nameEn:'Speaker',     nameKr:'스피커',    on:true,  panel:null       },
-    { id:'b-blind',  icon:'🪟', nameEn:'Blinds',      nameKr:'블라인드',  on:true,  panel:null       },
-  ],
-  kitchen: [
-    { id:'k-light',  icon:'💡', nameEn:'Light',       nameKr:'주방등',    on:true,  panel:'light'    },
-    { id:'k-coffee', icon:'☕', nameEn:'Coffee',       nameKr:'커피머신',  on:false, panel:null       },
-    { id:'k-fridge', icon:'❄️', nameEn:'Fridge',      nameKr:'냉장고',    on:true,  panel:null       },
-    { id:'k-hood',   icon:'🌬️', nameEn:'Hood Fan',    nameKr:'후드',      on:false, panel:null       },
-  ],
-};
+/* Position arc-end tick marks */
+(function(){
+  const a = fToXY(0), b = fToXY(1);
+  document.getElementById('tA').setAttribute('cx', a.x.toFixed(2));
+  document.getElementById('tA').setAttribute('cy', a.y.toFixed(2));
+  document.getElementById('tB').setAttribute('cx', b.x.toFixed(2));
+  document.getElementById('tB').setAttribute('cy', b.y.toFixed(2));
+})();
 
-const deviceState = {};
-
-/* ═══════════════════════════════════════════
-   INIT
-═══════════════════════════════════════════ */
-document.addEventListener('DOMContentLoaded', () => {
-  buildParticles();
-  buildVisualizer();
-  startClock();
-  renderDevices(S.room);
-  updateMusicUI();
-});
-
-/* ═══════════════════════════════════════════
-   CLOCK
-═══════════════════════════════════════════ */
-function startClock() { updateClock(); setInterval(updateClock, 1000); }
-
-function updateClock() {
-  const now = new Date();
-  const h = String(now.getHours()).padStart(2,'0');
-  const m = String(now.getMinutes()).padStart(2,'0');
-  document.getElementById('s-time').textContent = h + ':' + m;
-
-  const days  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const daysK = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
-  const mons  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const monsK = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
-
-  if (S.lang === 'en') {
-    document.getElementById('s-date').textContent = days[now.getDay()] + ', ' + mons[now.getMonth()] + ' ' + now.getDate();
-  } else {
-    document.getElementById('s-date').textContent = now.getFullYear() + '년 ' + monsK[now.getMonth()] + ' ' + now.getDate() + '일 ' + daysK[now.getDay()];
-  }
-
-  const hr = now.getHours();
-  const greet = hr < 5  ? (S.lang==='en'?'Good Night':'안녕히 주무세요')
-              : hr < 12 ? (S.lang==='en'?'Good Morning':'좋은 아침이에요')
-              : hr < 18 ? (S.lang==='en'?'Good Afternoon':'좋은 오후예요')
-              :            (S.lang==='en'?'Good Evening':'좋은 저녁이에요');
-  const el = document.getElementById('h-title');
-  if (el) el.textContent = greet;
-
-  const tapHint = document.getElementById('tap-hint');
-  if (tapHint) tapHint.textContent = S.lang === 'en' ? 'tap to wake' : '탭해서 시작';
-}
-
-/* ═══════════════════════════════════════════
-   NAVIGATION
-═══════════════════════════════════════════ */
-function wakeUp() {
-  goView(1);
-}
-
-function goView(idx) {
-  if (idx === S.view && idx !== 0) return;
-  const viewIds = ['v-standby','v-home','v-music','v-ai','v-security'];
-  const prev = document.getElementById(viewIds[S.view]);
-  const next = document.getElementById(viewIds[idx]);
-  if (!next) return;
-
-  prev.classList.remove('active');
-  prev.classList.add(idx > S.view ? 'exit-left' : 'exit-right');
-  setTimeout(() => prev.classList.remove('exit-left','exit-right'), 400);
-
-  S.view = idx;
-  next.classList.add('active');
-
-  // Tab nav: hide on standby
-  const nav = document.getElementById('tab-nav');
-  nav.classList.toggle('hidden', idx === 0);
-
-  // Update tab active state
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.v) === idx));
-
-  // Music ambient
-  if (idx === 2) {
-    updateMusicBg();
-    if (S.musicPlaying) document.getElementById('m-art').classList.add('spinning');
-  }
-}
-
-/* ═══════════════════════════════════════════
-   PARTICLES (standby)
-═══════════════════════════════════════════ */
-function buildParticles() {
-  const wrap = document.getElementById('particles');
-  for (let i = 0; i < 18; i++) {
-    const p = document.createElement('div');
-    p.className = 'particle';
-    const size = Math.random() * 2 + 1;
-    p.style.cssText = `
-      width:${size}px;height:${size}px;
-      left:${Math.random()*100}%;
-      bottom:${Math.random()*40}%;
-      animation-duration:${4+Math.random()*6}s;
-      animation-delay:-${Math.random()*8}s;
-      opacity:${0.2+Math.random()*0.5};
-    `;
-    wrap.appendChild(p);
-  }
-}
-
-/* ═══════════════════════════════════════════
-   VISUALIZER (music)
-═══════════════════════════════════════════ */
-function buildVisualizer() {
-  const wrap = document.getElementById('visualizer');
-  for (let i = 0; i < 20; i++) {
-    const b = document.createElement('div');
-    b.className = 'viz-bar';
-    const h = 4 + Math.random() * 22;
-    b.style.cssText = `--h:${h}px;animation-duration:${0.5+Math.random()*0.7}s;animation-delay:-${Math.random()*0.8}s;`;
-    wrap.appendChild(b);
-  }
-}
-
-/* ═══════════════════════════════════════════
-   MUSIC
-═══════════════════════════════════════════ */
-let musicTimer = null;
-
-function tracks() { return TRACKS[S.lang] || TRACKS.en; }
-function curTrack() { return tracks()[S.musicIdx % tracks().length]; }
-
-function updateMusicUI() {
-  const t = curTrack();
-  document.getElementById('m-art').textContent = t.e;
-  document.getElementById('m-title').textContent = t.t;
-  document.getElementById('m-artist').textContent = t.a;
-  document.getElementById('m-tot').textContent = fmtTime(t.dur);
-  document.getElementById('m-cur').textContent = fmtTime(S.musicSec);
-  document.getElementById('prog-fill').style.width = (S.musicSec / t.dur * 100) + '%';
-  if (S.view === 2) updateMusicBg();
-}
-
-function updateMusicBg() {
-  const t = curTrack();
-  document.getElementById('music-bg').style.cssText =
-    `position:absolute;inset:0;border-radius:50%;transition:all 1.5s ease;background:${t.bg};`;
-  const art = document.getElementById('m-art');
-  art.style.boxShadow = `0 0 0 1px rgba(255,255,255,0.1), 0 8px 40px rgba(0,0,0,0.6), 0 0 60px ${t.bg.match(/rgba\([^)]+\)/)?.[0]||'rgba(59,130,246,0.3)'}`;
-}
-
-function togglePlay() {
-  S.musicPlaying = !S.musicPlaying;
-  const btn = document.getElementById('m-play');
-  const art = document.getElementById('m-art');
-  if (S.musicPlaying) {
-    btn.textContent = '⏸';
-    art.classList.add('spinning');
-    clearInterval(musicTimer);
-    musicTimer = setInterval(() => {
-      S.musicSec = (S.musicSec + 1) % curTrack().dur;
-      document.getElementById('m-cur').textContent = fmtTime(S.musicSec);
-      document.getElementById('prog-fill').style.width = (S.musicSec / curTrack().dur * 100) + '%';
-    }, 1000);
-  } else {
-    btn.textContent = '▶';
-    art.classList.remove('spinning');
-    clearInterval(musicTimer);
-  }
-}
-
-function prevTrack() {
-  S.musicIdx = (S.musicIdx - 1 + tracks().length) % tracks().length;
-  S.musicSec = 0;
-  updateMusicUI();
-}
-function nextTrack() {
-  S.musicIdx = (S.musicIdx + 1) % tracks().length;
-  S.musicSec = 0;
-  updateMusicUI();
-}
-
-document.getElementById('prog-track').addEventListener('click', e => {
-  const r = e.currentTarget.getBoundingClientRect();
-  S.musicSec = Math.floor((e.clientX - r.left) / r.width * curTrack().dur);
-  updateMusicUI();
-});
-
-function fmtTime(sec) {
-  return Math.floor(sec/60) + ':' + String(sec%60).padStart(2,'0');
-}
-
-/* ═══════════════════════════════════════════
-   SMART HOME — DEVICES
-═══════════════════════════════════════════ */
-function setRoom(el) {
-  document.querySelectorAll('.room-pill').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  S.room = el.dataset.room;
-  renderDevices(S.room);
-}
-
-function renderDevices(room) {
-  const grid = document.getElementById('device-grid');
-  const devs = ROOMS[room] || [];
-  grid.innerHTML = devs.map(d => {
-    const on = deviceState[d.id] !== undefined ? deviceState[d.id] : d.on;
-    const name = S.lang === 'kr' ? d.nameKr : d.nameEn;
-    const status = on ? (S.lang==='kr'?'켜짐':'On') : (S.lang==='kr'?'꺼짐':'Off');
-    return `<div class="device-card ${on?'on':''}" id="dc-${d.id}"
-      onclick="handleDevice('${d.id}','${d.panel||''}',this)">
-      <div class="dc-toggle" id="tog-${d.id}"></div>
-      <span class="dc-icon">${d.icon}</span>
-      <div class="dc-name">${name}</div>
-      <div class="dc-status">${status}</div>
-    </div>`;
-  }).join('');
-}
-
-function handleDevice(id, panel, el) {
-  if (panel) {
-    openPanel(panel);
-  } else {
-    const on = el.classList.toggle('on');
-    deviceState[id] = on;
-    el.querySelector('.dc-status').textContent = on ? (S.lang==='kr'?'켜짐':'On') : (S.lang==='kr'?'꺼짐':'Off');
-  }
-}
-
-/* ═══════════════════════════════════════════
-   PANELS
-═══════════════════════════════════════════ */
-function openPanel(id) {
-  const p = document.getElementById('panel-' + id);
-  if (p) {
-    p.classList.add('open');
-    document.getElementById('panels').style.pointerEvents = 'all';
-  }
-}
-function closePanel(id) {
-  const p = document.getElementById('panel-' + id);
-  if (p) {
-    p.classList.remove('open');
-    document.getElementById('panels').style.pointerEvents = 'none';
-  }
-}
-
-// Swipe-down to close panels
-document.querySelectorAll('.panel-handle').forEach(h => {
-  let startY = 0;
-  h.addEventListener('touchstart', e => startY = e.touches[0].clientY, {passive:true});
-  h.addEventListener('touchend', e => {
-    if (e.changedTouches[0].clientY - startY > 40) {
-      const panel = h.closest('.panel');
-      const id = panel.id.replace('panel-','');
-      closePanel(id);
-    }
+/* Position 3 mode buttons radially inside arc near bottom */
+(function(){
+  // At r≈195, spread at CSS 215°, 180°, 145° (flanking bottom)
+  const angs  = [215, 180, 145];
+  const btns  = ['m-cool','m-eco','m-heat'];
+  const r     = 195, half = 560/2; // canvas half = 280px
+  btns.forEach((id,i) => {
+    const rad = (angs[i] - 90) * Math.PI / 180;
+    const x = half + r * Math.cos(rad);
+    const y = half + r * Math.sin(rad);
+    const el = document.getElementById(id);
+    el.style.left = x + 'px';
+    el.style.top  = y + 'px';
   });
+})();
+
+function renderClim() {
+  const f = (CLIM.temp - CLIM.min) / (CLIM.max - CLIM.min);
+  const m = MODES[CLIM.mode];
+  document.getElementById('v1arc').setAttribute('stroke', m.stroke);
+  document.getElementById('v1n').textContent   = CLIM.temp;
+  document.getElementById('v1mode').textContent = m.label;
+  document.getElementById('v1g').style.background =
+    `radial-gradient(ellipse at 50% 42%,${m.glow} 0%,transparent 66%)`;
+  updateArc('v1arc','v1dot', f);
+}
+
+attachDrag('v1svg', f => {
+  CLIM.temp = Math.round(CLIM.min + f * (CLIM.max - CLIM.min));
+  renderClim();
 });
 
-/* ═══════════════════════════════════════════
-   AC PANEL CONTROLS
-═══════════════════════════════════════════ */
-function adjustTemp(d) {
-  S.acTemp = Math.max(16, Math.min(30, S.acTemp + d));
-  document.getElementById('ac-temp').textContent = S.acTemp;
+/* Highlight active mode button */
+function highlightMode() {
+  ['m-cool','m-eco','m-heat'].forEach(id => {
+    document.getElementById(id).classList.toggle('on', document.getElementById(id).dataset.m === CLIM.mode);
+  });
 }
 function setMode(el) {
-  document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-}
-function setFan(el) {
-  document.querySelectorAll('[data-f]').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
+  CLIM.mode = el.dataset.m;
+  highlightMode();
+  renderClim();
 }
 
-/* ═══════════════════════════════════════════
-   LIGHTS PANEL CONTROLS
-═══════════════════════════════════════════ */
-document.getElementById('bright-track').addEventListener('click', e => setBrightness(e));
-function setBrightness(e) {
-  const r = document.getElementById('bright-track').getBoundingClientRect();
-  S.brightness = Math.round(Math.max(5, Math.min(100, (e.clientX-r.left)/r.width*100)));
-  document.getElementById('bright-fill').style.width = S.brightness + '%';
-  document.getElementById('bright-val').textContent = S.brightness + '%';
+renderClim();
+highlightMode();
+
+/* ════════════════════════════════════
+   AMBIANCE / LIGHTS  (V2)
+════════════════════════════════════ */
+const LGHT = { brt:75 };
+
+initArc('v2trk','v2arc');
+
+/* Position 4 scene buttons radially near bottom, at r≈200 */
+(function(){
+  const angs = [222, 202, 158, 138]; // left→right bottom arc
+  const ids  = document.querySelectorAll('.v2-s');
+  const r = 200, half = 280;
+  ids.forEach((el,i) => {
+    const rad = (angs[i] - 90) * Math.PI / 180;
+    el.style.left = (half + r * Math.cos(rad)) + 'px';
+    el.style.top  = (half + r * Math.sin(rad)) + 'px';
+  });
+})();
+
+function renderLight() {
+  const f = LGHT.brt / 100;
+  const a = 0.05 + f * 0.22;
+  document.getElementById('v2n').textContent  = LGHT.brt;
+  document.getElementById('v2g').style.background =
+    `radial-gradient(ellipse at 50% 44%,rgba(251,191,36,${a.toFixed(3)}) 0%,transparent 64%)`;
+  updateArc('v2arc','v2dot', f);
 }
+
+attachDrag('v2svg', f => {
+  LGHT.brt = Math.round(f * 100);
+  renderLight();
+});
+
 function setScene(el) {
-  document.querySelectorAll('.scene-btn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-}
-function setAirMode(el) {
-  el.closest('.mode-grid').querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-}
-
-/* ═══════════════════════════════════════════
-   TV PANEL CONTROLS
-═══════════════════════════════════════════ */
-document.getElementById('vol-track').addEventListener('click', e => setVolume(e));
-function setVolume(e) {
-  const r = document.getElementById('vol-track').getBoundingClientRect();
-  S.volume = Math.round((e.clientX-r.left)/r.width*100);
-  document.getElementById('vol-fill').style.width = S.volume + '%';
-  document.getElementById('vol-num').textContent = S.volume;
-}
-function setInput(el) {
-  document.querySelectorAll('.input-btn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
+  document.querySelectorAll('.v2-s').forEach(s => s.classList.remove('on'));
+  el.classList.add('on');
+  LGHT.brt = parseInt(el.dataset.brt);
+  document.getElementById('v2sc').textContent = el.dataset.sc;
+  renderLight();
 }
 
-/* ═══════════════════════════════════════════
-   POWER TOGGLE
-═══════════════════════════════════════════ */
-function togglePower(id) {
-  const el = document.getElementById(id+'-power') ||
-             document.getElementById(id==='purifier'?'pur-power':id+'-power');
-  if (el) el.classList.toggle('on');
+renderLight();
+
+/* ════════════════════════════════════
+   MUSIC  (V3)
+   Swipe left/right on this screen = prev/next
+════════════════════════════════════ */
+const TRACKS = [
+  {t:'Clair de Lune',   a:'Debussy',    d:303, bg:'radial-gradient(ellipse at 44% 36%,rgba(74,158,255,.58) 0%,rgba(191,90,242,.3) 55%,transparent 80%)'},
+  {t:'Bohemian Rhap.',  a:'Queen',      d:355, bg:'radial-gradient(ellipse at 56% 34%,rgba(239,68,68,.52) 0%,rgba(245,158,11,.27) 60%,transparent 80%)'},
+  {t:'Blinding Lights', a:'The Weeknd', d:200, bg:'radial-gradient(ellipse at 50% 50%,rgba(191,90,242,.55) 0%,rgba(74,158,255,.22) 60%,transparent 80%)'},
+  {t:'Love Poem',       a:'IU',         d:286, bg:'radial-gradient(ellipse at 40% 58%,rgba(236,72,153,.5) 0%,rgba(191,90,242,.24) 60%,transparent 80%)'},
+];
+const MUS = {i:0, sec:45, play:false};
+let mTimer=null;
+const MPROG_C = 2 * Math.PI * 270; // r=270 on 560 SVG → C≈1696.5
+
+function getTrk(){return TRACKS[MUS.i%TRACKS.length]}
+function renderMusic(){
+  const t=getTrk();
+  document.getElementById('v3t').textContent=t.t;
+  document.getElementById('v3a').textContent=t.a;
+  document.getElementById('v3bg').style.background=t.bg;
+  renderProg();
+}
+function renderProg(){
+  const p=MUS.sec/getTrk().d;
+  document.getElementById('v3prog').setAttribute('stroke-dashoffset',(MPROG_C*(1-p)).toFixed(2));
+}
+function togglePlay(){
+  MUS.play=!MUS.play;
+  document.getElementById('v3p').textContent=MUS.play?'⏸':'▶';
+  if(MUS.play){
+    mTimer=setInterval(()=>{MUS.sec=(MUS.sec+1)%getTrk().d;renderProg()},1000);
+  }else{clearInterval(mTimer)}
+}
+function prevTrk(){MUS.i=(MUS.i-1+TRACKS.length)%TRACKS.length;MUS.sec=0;renderMusic()}
+function nextTrk(){MUS.i=(MUS.i+1)%TRACKS.length;MUS.sec=0;renderMusic()}
+renderMusic();
+
+/* ════════════════════════════════════
+   SECURITY  (V4)
+════════════════════════════════════ */
+let armed=true;
+function toggleArm(){
+  armed=!armed;
+  document.getElementById('v4g').style.background=armed
+    ?'radial-gradient(ellipse at 50% 44%,rgba(48,209,88,.10) 0%,transparent 60%)'
+    :'radial-gradient(ellipse at 50% 44%,rgba(255,69,58,.13) 0%,transparent 60%)';
+  document.getElementById('v4ring').setAttribute('stroke',
+    armed?'rgba(48,209,88,.14)':'rgba(255,69,58,.16)');
+  document.getElementById('v4i').textContent  = armed?'🔒':'🔓';
+  document.getElementById('v4ti').textContent = armed?'Armed':'Disarmed';
+  document.getElementById('v4sb').textContent = armed?'All sensors normal':'Security off';
+  const b=document.getElementById('v4btn');
+  b.textContent=armed?'Disarm':'Arm';
+  b.className=armed?'v4-btn disarm':'v4-btn arm';
 }
 
-/* ═══════════════════════════════════════════
-   SECURITY
-═══════════════════════════════════════════ */
-function toggleArm() {
-  S.armed = !S.armed;
-  const badge = document.getElementById('sec-badge');
-  const btn   = document.getElementById('arm-btn');
-  badge.classList.toggle('armed', S.armed);
-  if (S.armed) {
-    document.getElementById('sec-text').textContent = S.lang==='kr'?'보안 활성화':'System Armed';
-    btn.textContent = S.lang==='kr'?'해제':'Disarm';
-    btn.classList.add('danger');
-  } else {
-    document.getElementById('sec-text').textContent = S.lang==='kr'?'이상 없음':'All Clear';
-    btn.textContent = S.lang==='kr'?'잠금':'Arm';
-    btn.classList.remove('danger');
-  }
-}
+/* ════════════════════════════════════
+   CLOCK
+════════════════════════════════════ */
+(function clock(){
+  const n=new Date();
+  document.getElementById('v0t').textContent=
+    String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+  const D=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('v0d').textContent=D[n.getDay()]+', '+M[n.getMonth()]+' '+n.getDate();
+  setTimeout(clock,1000);
+})();
 
-/* ═══════════════════════════════════════════
-   AI VOICE
-═══════════════════════════════════════════ */
-const AI_PROMPTS = {
-  en: ['Turn on the living room lights','Play some relaxing music',"What's the temperature outside?",'Lock all doors','Good night mode'],
-  kr: ['거실 불 켜줘','음악 틀어줘','밖에 온도 어때?','현관 잠가줘','취침 모드 켜줘'],
-};
-const AI_REPLIES = {
-  en: ['Done! Living room lights are on.','Playing Clair de Lune for you.','It\'s 22°C, partly cloudy outside.','All doors locked. Stay safe.','Goodnight! Lights dimmed, AC set to 22°.'],
-  kr: ['거실 조명을 켰어요.','클로드 드뷔시를 재생할게요.','지금 22도, 구름 조금 있어요.','모든 문 잠겼어요.','굿나잇! 조명 줄이고 에어컨 22도로 맞췄어요.'],
-};
-let aiIdx = 0;
-function triggerAI() {
-  const orb = document.getElementById('ai-orb');
-  const label = document.getElementById('ai-label');
-  const chat = document.getElementById('ai-chat');
-  orb.classList.add('listening');
-  label.textContent = S.lang==='kr'?'듣고 있어요...':'Listening...';
-
-  const prompts = AI_PROMPTS[S.lang];
-  const replies = AI_REPLIES[S.lang];
-
-  setTimeout(() => {
-    const uBubble = document.createElement('div');
-    uBubble.className = 'bubble user';
-    uBubble.textContent = prompts[aiIdx % prompts.length];
-    chat.appendChild(uBubble);
-    chat.scrollTop = chat.scrollHeight;
-    label.textContent = S.lang==='kr'?'생각 중...':'Thinking...';
-
-    setTimeout(() => {
-      const aBubble = document.createElement('div');
-      aBubble.className = 'bubble ai';
-      aBubble.textContent = replies[aiIdx % replies.length];
-      chat.appendChild(aBubble);
-      chat.scrollTop = chat.scrollHeight;
-      orb.classList.remove('listening');
-      label.textContent = S.lang==='kr'?'탭해서 말하기':'Tap to speak';
-      aiIdx++;
-    }, 1200);
-  }, 1000);
-}
-
-/* ═══════════════════════════════════════════
-   THEME
-═══════════════════════════════════════════ */
-function setTheme(theme, btn) {
-  document.body.className = theme === 'default' ? '' : 'theme-' + theme;
-  document.querySelectorAll('.oc-btn').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  S.theme = theme;
-}
-
-/* ═══════════════════════════════════════════
-   LANGUAGE
-═══════════════════════════════════════════ */
-function setLang(lang, btn) {
-  S.lang = lang;
-  document.querySelectorAll('[onclick*="setLang"]').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  updateClock();
-  renderDevices(S.room);
-  updateMusicUI();
-  // Update tab labels
-  const labels = {
-    en: ['Home','Music','AI','Security'],
-    kr: ['홈','음악','AI','보안'],
-  };
-  document.querySelectorAll('.tab-label').forEach((el, i) => {
-    if (labels[lang][i]) el.textContent = labels[lang][i];
+/* ════════════════════════════════════
+   ARD NAV DOTS POSITION
+   5 dots centred around 180° (bottom), r=87% of screen radius
+════════════════════════════════════ */
+(function(){
+  const scr=document.getElementById('screen');
+  const R=scr.offsetWidth/2;
+  const dr=R*.878;
+  // angles: tight cluster at bottom
+  const angs=[164,172,180,188,196];
+  document.querySelectorAll('.nd').forEach((d,i)=>{
+    const rad=(angs[i]-90)*Math.PI/180;
+    d.style.marginLeft=(dr*Math.cos(rad))+'px';
+    d.style.marginTop =(dr*Math.sin(rad))+'px';
   });
-  // Update room pills
-  const rooms = { en:['Living','Bedroom','Kitchen'], kr:['거실','침실','주방'] };
-  document.querySelectorAll('.room-pill').forEach((el, i) => {
-    el.textContent = rooms[lang][i];
-  });
-  // Weather
-  document.getElementById('s-weather').textContent = lang === 'kr' ? '22°C · 서울' : '22°C · Seoul';
-  const hd = document.getElementById('h-desc');
-  if (hd) hd.textContent = lang === 'kr' ? '구름 조금 · 서울' : 'Partly Cloudy · Seoul';
-  // AI intro
-  const aiChat = document.getElementById('ai-chat');
-  if (aiChat) {
-    aiChat.innerHTML = `<div class="bubble ai">${lang==='kr'?'안녕하세요! 무엇을 도와드릴까요?':'Hi! How can I help you today?'}</div>`;
-  }
-  // Security
-  const secText = document.getElementById('sec-text');
-  if (secText) secText.textContent = S.armed ? (lang==='kr'?'보안 활성화':'System Armed') : (lang==='kr'?'이상 없음':'All Clear');
-  const armBtn = document.getElementById('arm-btn');
-  if (armBtn) armBtn.textContent = S.armed ? (lang==='kr'?'해제':'Disarm') : (lang==='kr'?'잠금':'Arm');
-  const hint = document.getElementById('tap-hint');
-  if (hint) hint.textContent = lang==='kr'?'탭해서 시작':'tap to wake';
+})();
+
+/* ════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════ */
+const VIDS=['v0','v1','v2','v3','v4'];
+let cur=0;
+
+document.getElementById('v0').addEventListener('click',()=>go(1));
+
+function go(i){
+  if(i===cur)return;
+  const pe=document.getElementById(VIDS[cur]);
+  const ne=document.getElementById(VIDS[i]);
+  const d=i>cur?'ol':'or';
+  pe.classList.remove('active');
+  pe.classList.add(d);
+  setTimeout(()=>pe.classList.remove('ol','or'),360);
+  cur=i;
+  ne.classList.add('active');
+  document.querySelectorAll('.nd').forEach(d=>d.classList.toggle('on',+d.dataset.i===i));
+  document.getElementById('nav').style.opacity=i===0?'0':'1';
 }
 
-/* ═══════════════════════════════════════════
-   SWIPE GESTURE
-═══════════════════════════════════════════ */
-const views = document.getElementById('views');
-let tX = 0, tY = 0;
-views.addEventListener('touchstart', e => {
-  tX = e.touches[0].clientX;
-  tY = e.touches[0].clientY;
-}, { passive: true });
-views.addEventListener('touchend', e => {
-  if (S.view === 0) return; // standby: tap to wake only
-  const dx = e.changedTouches[0].clientX - tX;
-  const dy = e.changedTouches[0].clientY - tY;
-  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 44) {
-    const total = 4; // views 1-4
-    if (dx < 0 && S.view < total) goView(S.view + 1);
-    else if (dx > 0 && S.view > 1) goView(S.view - 1);
+/* ════════════════════════════════════
+   SWIPE  (left/right to navigate; on music screen also changes track)
+════════════════════════════════════ */
+let sx=0,sy=0;
+document.getElementById('screen').addEventListener('touchstart',e=>{
+  sx=e.touches[0].clientX;sy=e.touches[0].clientY;
+},{passive:true});
+document.getElementById('screen').addEventListener('touchend',e=>{
+  if(cur===0)return;
+  const dx=e.changedTouches[0].clientX-sx;
+  const dy=e.changedTouches[0].clientY-sy;
+  if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>44){
+    if(cur===3){
+      // music screen: swipe changes track
+      dx<0?nextTrk():prevTrk();
+    }else{
+      if(dx<0&&cur<VIDS.length-1)go(cur+1);
+      else if(dx>0&&cur>1)go(cur-1);
+    }
   }
-}, { passive: true });
+},{passive:true});
 </script>
 </body>
 </html>
